@@ -14,6 +14,11 @@ namespace MyCrawler
         {
             BaseSpider spider = new IosStoreSpider();
             spider.Run();
+
+            while (true)
+            {
+                Thread.Sleep(1000);
+            }
         }
     }
 }

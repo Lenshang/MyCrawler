@@ -15,9 +15,9 @@ namespace MyCrawler
     {
         public RequestEntity request { get; set; }
         public ResponseEntity response { get; set; }
-        public Func<HttpContentModel,Task> callback { get; set; }
+        public Action<HttpContentModel> callback { get; set; }
         public Object meta { get; set; }
-        public HttpContentModel(RequestEntity _request, Func<HttpContentModel,Task> callback,Object meta)
+        public HttpContentModel(RequestEntity _request, Action<HttpContentModel> callback,Object meta)
         {
             this.request = _request;
             this.callback = callback;
@@ -60,33 +60,45 @@ namespace MyCrawler
             responsePipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity,ResponseEntity, object, object>>();
             requestPipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity, object, object>>();
         }
-
-        private async Task<bool> Run(HttpContentModel model)
+        private void Run()
         {
-            tasksQueue.Push(model);
-            BaseHttpClient client=null;
-            do
+            bool isAlive = true;
+            lock (locker)
             {
-                if(!freeClientsQueue.TryPop(out client))
+                if (runningThread == null)
                 {
-                    Thread.Sleep(100);
+                    isAlive = false;
+                }
+                else
+                {
+                    isAlive = runningThread.IsAlive;
+                }
+                if (!isAlive)
+                {
+                    runningThread = new Thread(() => {
+                        while (tasksQueue.Count > 0)
+                        {
+                            BaseHttpClient client;
+                            if (freeClientsQueue.TryPop(out client))
+                            {
+                                HttpContentModel task;
+                                if (tasksQueue.TryPop(out task))
+                                {
+                                    this.Send(client, task, task.callback).ContinueWith(r => {
+                                        //freeClientsQueue.Enqueue(client);
+                                    });
+                                }
+                                else
+                                {
+                                    freeClientsQueue.Push(client);
+                                }
+                            }
+                            Thread.Sleep(10);
+                        }
+                    });
+                    runningThread.Start();
                 }
             }
-            while (client==null);
-            return await this.GetTaskAndRun(client);
-        }
-        private async Task<bool> GetTaskAndRun(BaseHttpClient client)
-        {
-            HttpContentModel task;
-            do
-            {
-                if (!tasksQueue.TryPop(out task))
-                {
-                    Thread.Sleep(100);
-                }
-            }
-            while (task == null);
-            return await this.SendAndCallback(client, task);
         }
         /// <summary>
         /// 注册一个Exception管道用来处理异常。管道返回RequestEntity则重新请求，管道返回ResponseEntity则继续，管道返回Null则放弃请求
@@ -112,41 +124,34 @@ namespace MyCrawler
         {
             this.requestPipelines.Add(pipeline);
         }
-        //public void Get(string url,Func<HttpContentModel,Task> callback,Object meta=null) 
-        //{
-        //    var model = new HttpContentModel(this.CreateGetRequest(url), callback, meta);
-        //    try
-        //    {
-        //        tasksQueue.Push(model);
-        //        this.Run();
-        //    }
-        //    catch(Exception e)
-        //    {
-        //        ProcessException(null, e, model).ContinueWith(r=> { });
-        //    }
-        //}
-        public async Task<bool> Get(string url, Func<HttpContentModel,Task> callback, Object meta = null)
+        public void Get(string url,Action<HttpContentModel> callback,Object meta=null) 
         {
             var model = new HttpContentModel(this.CreateGetRequest(url), callback, meta);
             try
             {
-                return await this.Run(model);
+                tasksQueue.Push(model);
+                this.Run();
             }
-            catch (Exception e)
+            catch(Exception e)
             {
-                return await ProcessException(null, e, model);
+                ProcessException(null, e, model).ContinueWith(r=> { });
             }
         }
-        public async Task<bool> Post(string url,string data, Func<HttpContentModel,Task> callback, string contentType = "application/json",Object meta=null)
+
+        public void Post(string url,string data, Action<HttpContentModel> callback, string contentType = "application/json",Object meta=null)
         {
-            var model = new HttpContentModel(this.CreatePostRequest(url,data,contentType), callback, meta);
+
+            //var r = await this.client.PostAsync(url, httpContent);
+            var model = new HttpContentModel(null, callback, meta);
             try
             {
-                return await this.Run(model);
+                model.request = this.CreatePostRequest(url, data, contentType);
+                tasksQueue.Push(model);
+                this.Run();
             }
             catch (Exception e)
             {
-                return await ProcessException(null, e, model);
+                ProcessException(null, e, model).ContinueWith(r => { });
             }
         }
         public RequestEntity CreateGetRequest(string url)
@@ -164,21 +169,7 @@ namespace MyCrawler
             request.SetSendData(data);
             return request;
         }
-        private async Task<bool> SendAndCallback(BaseHttpClient client,HttpContentModel model)
-        {
-            try
-            {
-                var response = await this.Send(client, model);
-                model.response = response;
-                await model.callback(model);
-                return response.StatusCode == 200;
-            }
-            catch(Exception e)
-            {
-                return await ProcessException(client, e, model);
-            }
-        }
-        private async Task<ResponseEntity> Send(BaseHttpClient client, HttpContentModel model)
+        private async Task<bool> Send(BaseHttpClient client, HttpContentModel model, Action<HttpContentModel> callback)
         {
             try
             {
@@ -196,7 +187,7 @@ namespace MyCrawler
                 if (model.request == null)
                 {
                     //freeClientsQueue.Push(client);
-                    return null;
+                    return false;
                 }
                 ResponseEntity r=null;
                 if (client == null)
@@ -204,7 +195,7 @@ namespace MyCrawler
 #if DEBUG
                     Console.WriteLine("HttpClient is null");
 #endif
-                    return null;
+                    return false;
                 }
                 r = await client.CreateHttpRequestSend(model);
                 //针对StatusCode 做异常处理
@@ -221,23 +212,23 @@ namespace MyCrawler
                     if(rpip is RequestEntity)
                     {
                         model.request = rpip as RequestEntity;
-                        return await this.Send(client, model);
+                        return await this.Send(client, model, callback);
                     }
                     else if(rpip is null)
                     {
                         //freeClientsQueue.Push(client);
-                        return null;
+                        return false;
                     }
                 }
                 model.response = r;
+                callback.Invoke(model);
                 //freeClientsQueue.Push(client);//放在此处添加队列，解析过程也在线程限制数里
-                return r;
+                return r.StatusCode==200;
             }
             catch(Exception e)
             {
-                throw e;
-                //Console.WriteLine(e.Message);
-                //return await ProcessException(client, e, model);
+                Console.WriteLine(e.Message);
+                return await ProcessException(client, e, model);
             }
             finally
             {
@@ -258,13 +249,13 @@ namespace MyCrawler
                 else if (rpip is RequestEntity)
                 {
                     model.request = rpip as RequestEntity;
-                    return await this.SendAndCallback(client, model);
+                    return await this.Send(client, model, model.callback);
                 }
                 else if (rpip is ResponseEntity)
                 {
                     var resp = rpip as ResponseEntity;
                     model.response = resp;
-                    await model.callback(model);
+                    model.callback.Invoke(model);
                     return resp.StatusCode==200;
                 }
             }
