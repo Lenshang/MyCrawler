@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace LvdunCrawler
 {
@@ -42,7 +43,7 @@ namespace LvdunCrawler
             IBrowsingContext context = BrowsingContext.New(config);
             parser = context.GetService<IHtmlParser>();
         }
-        public override void Run()
+        public override async Task Run()
         {
             int page = 1;
             int maxPage = 5000;
@@ -50,7 +51,7 @@ namespace LvdunCrawler
             {
 
                 string url = $"http://www.11315.com/al/vl-{page}";
-                this.http.Get(url, ParseListpage);
+                await this.http.Get(url, ParseListpage);
                 if (this.debug)
                 {
                     break;
@@ -60,10 +61,9 @@ namespace LvdunCrawler
                     break;
                 }
                 page++;
-                Thread.Sleep(3000);
             }
         }
-        public void ParseListpage(HttpContentModel response)
+        public async Task ParseListpage(HttpContentModel response)
         {
             var r = response.response.GetHtml();
             //Console.WriteLine(DateTime.Now.ToString()+"成功访问了百度");
@@ -87,11 +87,11 @@ namespace LvdunCrawler
                 url = url + "?" + UrlHelper.ConvertUrlParams(_params);
                 var meta = new Dictionary<string, string>();
                 meta.Add("companyName", cName);
-                this.http.Get(url, ParseCompanyPage, meta);
+                await this.http.Get(url, ParseCompanyPage, meta);
             }
         }
 
-        public void ParseCompanyPage(HttpContentModel response)
+        public async Task ParseCompanyPage(HttpContentModel response)
         {
             Console.WriteLine((response.meta as Dictionary<string, string>)["companyName"]);
             var r = response.response.GetHtml();

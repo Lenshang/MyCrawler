@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace MyCrawler.Spiders
 {
@@ -20,13 +21,13 @@ namespace MyCrawler.Spiders
         object locker = new object();
         IHtmlParser parser;
         bool debug = false;
-        public IosStoreSpider():base(maxThread:20)
+        public IosStoreSpider():base(maxThread:1)
         {
             var config = Configuration.Default;
             IBrowsingContext context = BrowsingContext.New(config);
             parser = context.GetService<IHtmlParser>();
         }
-        public override void Run()
+        public override async Task Run()
         {
             var typeDictionary = new Dictionary<string, string>();
             typeDictionary.Add("图书", "id6018");
@@ -40,12 +41,12 @@ namespace MyCrawler.Spiders
                     string url = "https://itunes.apple.com"+$"/cn/genre/ios-{key}/{_id}?mt=8&letter={letter}&page=1#page";
                     Dictionary<string, object> meta = new Dictionary<string, object>();
                     meta.Add("page", 1);
-                    this.http.Get(url, ParseAppList, meta);
+                    await this.http.Get(url, ParseAppList, meta);
                 }
             }
         }
 
-        private void ParseAppList(HttpContentModel response)
+        private async Task ParseAppList(HttpContentModel response)
         {
             var document = response.response.GetDocument();
             foreach(var item in document.QuerySelectorAll("#selectedcontent div a"))
@@ -54,11 +55,10 @@ namespace MyCrawler.Spiders
                 var appUrl = item.GetAttribute("href");
                 var meta = CopyHelper.DeepCopy(response.meta as Dictionary<string, object>);
                 meta.Add("appName", appName);
-                this.http.Get(appUrl, ParseAppDetail, meta);
+                await this.http.Get(appUrl, ParseAppDetail, meta).ContinueWith(r=> { });
             }
-            
         }
-        private void ParseAppDetail(HttpContentModel response)
+        private async Task ParseAppDetail(HttpContentModel response)
         {
             var meta = response.meta as Dictionary<string, object>;
             Console.WriteLine(meta["appName"]);
