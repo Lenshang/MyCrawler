@@ -1,5 +1,9 @@
 ﻿using LvdunCrawler;
+using MyCrawler.Model;
+using MyCrawler.Spiders;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace MyCrawler
@@ -8,8 +12,7 @@ namespace MyCrawler
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-            LvdunSpider spider = new LvdunSpider();
+            BaseSpider spider = new IosStoreSpider();
             spider.Run();
 
             while (true)
