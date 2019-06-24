@@ -3,19 +3,72 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MyCrawler.Model
 {
     public abstract class BaseSpider
     {
         public HttpEventClient http;
-
+        private Object locker;
+        private int status = 0;
         public BaseSpider(int maxThread=1)
         {
+            this.locker = new object();
             http = new HttpEventClient(maxThread);
             this.http.RegRequestPipelines(this.BeforeRequest);
             this.http.RegResponsePipelines(this.BeforeResponse);
             this.http.RegExceptionPipelines(this.BeforeException);
+        }
+        public virtual Task RunAndWait(bool autoStop=true)
+        {
+            this.Run();
+            if (autoStop)
+            {
+                return Task.Delay(5000).ContinueWith(r => {
+                    while (true)
+                    {
+                        if (this.http.runningThread == null)
+                        {
+                            return;
+                        }
+                        if (!this.http.runningThread.IsAlive)
+                        {
+                            return;
+                        }
+                        Thread.Sleep(500);
+                    }
+                });
+            }
+            else
+            {
+                return Task.Run(() => {
+                    while (true)
+                    {
+                        var _status = -1;
+                        lock (locker)
+                        {
+                            _status = this.status;
+                        }
+                        if (_status == 2)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
+                });
+            }
+        }
+        public virtual void End()
+        {
+            lock (locker)
+            {
+                status = 2;
+            }
         }
         public abstract void Run();
         /// <summary>

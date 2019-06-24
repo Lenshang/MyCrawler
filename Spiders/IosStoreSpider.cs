@@ -41,6 +41,7 @@ namespace MyCrawler.Spiders
                     Dictionary<string, object> meta = new Dictionary<string, object>();
                     meta.Add("page", 1);
                     this.http.Get(url, ParseAppList, meta);
+                    break;
                 }
             }
         }

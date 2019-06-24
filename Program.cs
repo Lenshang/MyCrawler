@@ -13,12 +13,7 @@ namespace MyCrawler
         static void Main(string[] args)
         {
             BaseSpider spider = new IosStoreSpider();
-            spider.Run();
-
-            while (true)
-            {
-                Thread.Sleep(1000);
-            }
+            spider.RunAndWait().Wait();
         }
     }
 }
