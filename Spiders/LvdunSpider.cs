@@ -21,7 +21,6 @@ namespace LvdunCrawler
     /// </summary>
     class LvdunSpider:BaseSpider
     {
-        public HttpEventClient http;
         object locker = new object();
         IHtmlParser parser;
         bool debug = false;
@@ -85,7 +84,7 @@ namespace LvdunCrawler
                 _params.Add("cb", "jQuery110208514957267839198_1561021902645");
                 _params.Add("_", DateHelper.GetTimestamp(DateTime.Now));
                 url = url + "?" + UrlHelper.ConvertUrlParams(_params);
-                var meta = new Dictionary<string, string>();
+                var meta = new Dictionary<string, object>();
                 meta.Add("companyName", cName);
                 this.http.Get(url, ParseCompanyPage, meta);
             }
@@ -93,7 +92,7 @@ namespace LvdunCrawler
 
         public void ParseCompanyPage(HttpContentModel response)
         {
-            Console.WriteLine((response.meta as Dictionary<string, string>)["companyName"]);
+            Console.WriteLine((response.meta)["companyName"]);
             var r = response.response.GetHtml();
             string content = r;
             string jsonStr = content.Replace("/**/jQuery110208514957267839198_1561021902645(", "").Replace(");","");
@@ -103,7 +102,7 @@ namespace LvdunCrawler
                 //自己解析
             }
         }
-        public override object BeforeRequest(BaseHttpClient client,RequestEntity request, object meta)
+        public override object BeforeRequest(BaseHttpClient client,RequestEntity request, Dictionary<string, object> meta)
         {
             if (request.Url.ToString().Contains("baidu.com"))
             {
@@ -111,7 +110,7 @@ namespace LvdunCrawler
             }
             return request;
         }
-        public override object BeforeResponse(BaseHttpClient client, RequestEntity request,ResponseEntity response, object meta)
+        public override object BeforeResponse(BaseHttpClient client, RequestEntity request,ResponseEntity response, Dictionary<string, object> meta)
         {
             if (request.Url.ToString().Contains("11315.com"))
             {

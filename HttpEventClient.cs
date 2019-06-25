@@ -16,8 +16,8 @@ namespace MyCrawler
         public RequestEntity request { get; set; }
         public ResponseEntity response { get; set; }
         public Action<HttpContentModel> callback { get; set; }
-        public Object meta { get; set; }
-        public HttpContentModel(RequestEntity _request, Action<HttpContentModel> callback,Object meta)
+        public Dictionary<string,object> meta { get; set; }
+        public HttpContentModel(RequestEntity _request, Action<HttpContentModel> callback, Dictionary<string, object> meta)
         {
             this.request = _request;
             this.callback = callback;
@@ -29,9 +29,9 @@ namespace MyCrawler
     public class HttpEventClient<T> where T:BaseHttpClient
     {
         //public HttpClient client { get; set; }
-        public ConcurrentBag<Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity,object, object>> exceptionPipelines { get; set; }
-        public ConcurrentBag<Func<BaseHttpClient, RequestEntity,ResponseEntity, object, object>> responsePipelines { get; set; }
-        public ConcurrentBag<Func<BaseHttpClient, RequestEntity, object, object>> requestPipelines { get; set; }
+        public ConcurrentBag<Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity, Dictionary<string, object>, object>> exceptionPipelines { get; set; }
+        public ConcurrentBag<Func<BaseHttpClient, RequestEntity,ResponseEntity, Dictionary<string, object>, object>> responsePipelines { get; set; }
+        public ConcurrentBag<Func<BaseHttpClient, RequestEntity, Dictionary<string, object>, object>> requestPipelines { get; set; }
 
         public List<BaseHttpClient> clientsPool { get; set; }
         public ConcurrentStack<BaseHttpClient> freeClientsQueue { get; set; }
@@ -56,9 +56,9 @@ namespace MyCrawler
             }
             locker = new object();
             //client = new HttpClient();
-            exceptionPipelines = new ConcurrentBag<Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity, object, object>>();
-            responsePipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity,ResponseEntity, object, object>>();
-            requestPipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity, object, object>>();
+            exceptionPipelines = new ConcurrentBag<Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity, Dictionary<string, object>, object>>();
+            responsePipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity,ResponseEntity, Dictionary<string, object>, object>>();
+            requestPipelines = new ConcurrentBag<Func<BaseHttpClient, RequestEntity, Dictionary<string, object>, object>>();
         }
         private void Run()
         {
@@ -104,7 +104,7 @@ namespace MyCrawler
         /// 注册一个Exception管道用来处理异常。管道返回RequestEntity则重新请求，管道返回ResponseEntity则继续，管道返回Null则放弃请求
         /// </summary>
         /// <param name="pipeline"></param>
-        public void RegExceptionPipelines(Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity, object, object> pipeline)
+        public void RegExceptionPipelines(Func<BaseHttpClient, Exception, RequestEntity, ResponseEntity, Dictionary<string, object>, object> pipeline)
         {
             this.exceptionPipelines.Add(pipeline);
         }
@@ -112,7 +112,7 @@ namespace MyCrawler
         /// 注册一个Response管道，管道返回ResponseEntity 则继续，返回RequestEntity 则重新请求，返回Null 则放弃请求
         /// </summary>
         /// <param name="pipeline"></param>
-        public void RegResponsePipelines(Func<BaseHttpClient, RequestEntity,ResponseEntity, object, object> pipeline)
+        public void RegResponsePipelines(Func<BaseHttpClient, RequestEntity,ResponseEntity, Dictionary<string, object>, object> pipeline)
         {
             this.responsePipelines.Add(pipeline);
         }
@@ -120,11 +120,11 @@ namespace MyCrawler
         /// 注册一个Request管道，管道返回RequestEntity 则继续，返回Null 则放弃请求,返回Exception则继续处理异常
         /// </summary>
         /// <param name="pipeline"></param>
-        public void RegRequestPipelines(Func<BaseHttpClient, RequestEntity, object, object> pipeline)
+        public void RegRequestPipelines(Func<BaseHttpClient, RequestEntity, Dictionary<string, object>, object> pipeline)
         {
             this.requestPipelines.Add(pipeline);
         }
-        public void Get(string url,Action<HttpContentModel> callback,Object meta=null) 
+        public void Get(string url,Action<HttpContentModel> callback, Dictionary<string, object> meta =null) 
         {
             var model = new HttpContentModel(this.CreateGetRequest(url), callback, meta);
             try
@@ -138,7 +138,7 @@ namespace MyCrawler
             }
         }
 
-        public void Post(string url,string data, Action<HttpContentModel> callback, string contentType = "application/json",Object meta=null)
+        public void Post(string url,string data, Action<HttpContentModel> callback, string contentType = "application/json", Dictionary<string, object> meta =null)
         {
 
             //var r = await this.client.PostAsync(url, httpContent);
@@ -205,7 +205,7 @@ namespace MyCrawler
                     throw new CatchHttpCodeException(r.StatusCode);
                 }
 
-                Func<BaseHttpClient, RequestEntity, ResponseEntity, object, object>[] _responsePip= responsePipelines.ToArray();
+                Func<BaseHttpClient, RequestEntity, ResponseEntity, Dictionary<string, object>, object>[] _responsePip= responsePipelines.ToArray();
                 foreach (var pipeline in _responsePip)
                 {
                     var rpip = pipeline.Invoke(client,model.request,r,model.meta);

@@ -1,4 +1,5 @@
-﻿using MyCrawler.Utils;
+﻿using MyCrawler.Pipelines;
+using MyCrawler.Utils;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -13,10 +14,14 @@ namespace MyCrawler.Model
         public HttpEventClient http;
         private Object locker;
         private int status = 0;
+        public int maxDeep = -1;
+        public DefaultRequestPipelines defaultRequestPipelines { get; private set; }
         public BaseSpider(int maxThread=1)
         {
             this.locker = new object();
             http = new HttpEventClient(maxThread);
+            defaultRequestPipelines = new DefaultRequestPipelines(this);
+
             this.http.RegRequestPipelines(this.BeforeRequest);
             this.http.RegResponsePipelines(this.BeforeResponse);
             this.http.RegExceptionPipelines(this.BeforeException);
@@ -27,13 +32,22 @@ namespace MyCrawler.Model
             if (autoStop)
             {
                 return Task.Delay(5000).ContinueWith(r => {
+                    int _count = 0;
                     while (true)
                     {
                         if (this.http.runningThread == null)
                         {
-                            return;
+                            _count++;
                         }
-                        if (!this.http.runningThread.IsAlive)
+                        else if (!this.http.runningThread.IsAlive)
+                        {
+                            _count++;
+                        }
+                        else
+                        {
+                            _count = 0;
+                        }
+                        if (_count > 3)
                         {
                             return;
                         }
@@ -77,7 +91,7 @@ namespace MyCrawler.Model
         /// <param name="client"></param>
         /// <param name="request"></param>
         /// <returns>返回request则继续执行该request，返回null则放弃该任务</returns>
-        public virtual object BeforeRequest(BaseHttpClient client, RequestEntity request, object meta)
+        public virtual object BeforeRequest(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
         {
             return request;
         }
@@ -88,7 +102,7 @@ namespace MyCrawler.Model
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <returns>返回request则重新请求，返回response则继续，返回null则放弃</returns>
-        public virtual object BeforeResponse(BaseHttpClient client, RequestEntity request, ResponseEntity response, object meta)
+        public virtual object BeforeResponse(BaseHttpClient client, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
         {
             return response;
         }
@@ -100,7 +114,7 @@ namespace MyCrawler.Model
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <returns>返回Exception继续处理该异常，返回request重新请求，返回response则正常返回，返回NULL放弃该任务</returns>
-        public virtual object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response,object meta)
+        public virtual object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
         {
             return e;
         }

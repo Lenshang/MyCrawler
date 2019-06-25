@@ -31,7 +31,7 @@ namespace MyCrawler.Model
         /// <summary>
         /// 原始Response信息
         /// </summary>
-        public HttpWebResponse Response { get; set; }
+        public object Response { get; set; }
         public string GetHtml(Encoding encode = null)
         {
             if (encode == null)

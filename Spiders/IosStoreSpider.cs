@@ -17,14 +17,8 @@ namespace MyCrawler.Spiders
     /// </summary>
     public class IosStoreSpider:BaseSpider
     {
-        object locker = new object();
-        IHtmlParser parser;
-        bool debug = false;
         public IosStoreSpider():base(maxThread:20)
         {
-            var config = Configuration.Default;
-            IBrowsingContext context = BrowsingContext.New(config);
-            parser = context.GetService<IHtmlParser>();
         }
         public override void Run()
         {
@@ -53,7 +47,7 @@ namespace MyCrawler.Spiders
             {
                 var appName = item.TextContent;
                 var appUrl = item.GetAttribute("href");
-                var meta = CopyHelper.DeepCopy(response.meta as Dictionary<string, object>);
+                var meta = CopyHelper.DeepCopy(response.meta);
                 meta.Add("appName", appName);
                 this.http.Get(appUrl, ParseAppDetail, meta);
             }
@@ -86,14 +80,14 @@ namespace MyCrawler.Spiders
             appItem.ImgUrl= jObj1["image"]?.ToString();
             //TODO 写入数据库
         }
-        public override object BeforeRequest(BaseHttpClient client, RequestEntity request, object meta)
+        public override object BeforeRequest(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
         {
             request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
             request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
             return base.BeforeRequest(client, request,meta);
         }
 
-        public override object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, object meta)
+        public override object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
         {
             if(e is CatchHttpCodeException)
             {
