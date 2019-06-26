@@ -91,7 +91,7 @@ namespace MyCrawler.Model
         /// <param name="client"></param>
         /// <param name="request"></param>
         /// <returns>返回request则继续执行该request，返回null则放弃该任务</returns>
-        public virtual object BeforeRequest(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
+        public virtual object BeforeRequest(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
             return request;
         }
@@ -102,7 +102,7 @@ namespace MyCrawler.Model
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <returns>返回request则重新请求，返回response则继续，返回null则放弃</returns>
-        public virtual object BeforeResponse(BaseHttpClient client, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
+        public virtual object BeforeResponse(BaseHttpClient client, RequestEntity request, ResponseEntity response, MetaModel meta)
         {
             return response;
         }
@@ -114,7 +114,7 @@ namespace MyCrawler.Model
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <returns>返回Exception继续处理该异常，返回request重新请求，返回response则正常返回，返回NULL放弃该任务</returns>
-        public virtual object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
+        public virtual object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, MetaModel meta)
         {
             return e;
         }

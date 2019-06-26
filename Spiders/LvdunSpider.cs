@@ -84,7 +84,7 @@ namespace LvdunCrawler
                 _params.Add("cb", "jQuery110208514957267839198_1561021902645");
                 _params.Add("_", DateHelper.GetTimestamp(DateTime.Now));
                 url = url + "?" + UrlHelper.ConvertUrlParams(_params);
-                var meta = new Dictionary<string, object>();
+                var meta = new MetaModel();
                 meta.Add("companyName", cName);
                 this.http.Get(url, ParseCompanyPage, meta);
             }
@@ -102,7 +102,7 @@ namespace LvdunCrawler
                 //自己解析
             }
         }
-        public override object BeforeRequest(BaseHttpClient client,RequestEntity request, Dictionary<string, object> meta)
+        public override object BeforeRequest(BaseHttpClient client,RequestEntity request, MetaModel meta)
         {
             if (request.Url.ToString().Contains("baidu.com"))
             {
@@ -110,7 +110,7 @@ namespace LvdunCrawler
             }
             return request;
         }
-        public override object BeforeResponse(BaseHttpClient client, RequestEntity request,ResponseEntity response, Dictionary<string, object> meta)
+        public override object BeforeResponse(BaseHttpClient client, RequestEntity request,ResponseEntity response, MetaModel meta)
         {
             if (request.Url.ToString().Contains("11315.com"))
             {

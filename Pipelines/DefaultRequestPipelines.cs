@@ -13,35 +13,48 @@ namespace MyCrawler.Pipelines
             this.spider = spider;
             spider.http.RegRequestPipelines(this.DeepControl);
         }
-        public object DefaultHeader(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
+        public object DefaultHeader(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
             return null;
         }
-        public object DeepControl(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
+        public object DeepControl(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
             if (meta == null)
             {
-                meta = new Dictionary<string, object>();
+                meta = new MetaModel();
             }
-            if (meta.TryGetValue("deep", out object deep))
+            if (meta["deep"] != null)
             {
-                if (deep.GetType() == typeof(long)|| deep.GetType() == typeof(int))
+                if (meta["deep"].GetType() == typeof(int))
                 {
-                    meta["deep"] = (long)deep + 1;
+                    meta["deep"] = (int)meta["deep"] + 1;
+                }
+                else if (meta["deep"].GetType() == typeof(int))
+                {
+                    meta["deep"] = Convert.ToInt32(meta["deep"]) + 1;
                 }
                 else
                 {
-                    meta["deep"] = (long)0;
+                    meta["deep"] = (int)0;
                 }
             }
             else
             {
-                meta.Add("deep", 0);
+                meta["deep"]= (int)0;
             }
 
             if (this.spider.maxDeep >=0)
             {
-                if((long)meta["deep"]> this.spider.maxDeep)
+                int _deep = 0;
+                if (meta["deep"].GetType() == typeof(int))
+                {
+                    _deep = (int)meta["deep"];
+                }
+                else
+                {
+                    _deep = Convert.ToInt32(meta["deep"]);
+                }
+                if (_deep > this.spider.maxDeep)
                 {
                     return null;
                 }

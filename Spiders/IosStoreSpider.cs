@@ -17,7 +17,7 @@ namespace MyCrawler.Spiders
     /// </summary>
     public class IosStoreSpider:BaseSpider
     {
-        public IosStoreSpider():base(maxThread:20)
+        public IosStoreSpider():base(maxThread:1)
         {
         }
         public override void Run()
@@ -32,7 +32,7 @@ namespace MyCrawler.Spiders
                 foreach(var letter in letters)
                 {
                     string url = "https://itunes.apple.com"+$"/cn/genre/ios-{key}/{_id}?mt=8&letter={letter}&page=1#page";
-                    Dictionary<string, object> meta = new Dictionary<string, object>();
+                    MetaModel meta = new MetaModel();
                     meta.Add("page", 1);
                     this.http.Get(url, ParseAppList, meta);
                     break;
@@ -47,15 +47,15 @@ namespace MyCrawler.Spiders
             {
                 var appName = item.TextContent;
                 var appUrl = item.GetAttribute("href");
-                var meta = CopyHelper.DeepCopy(response.meta);
-                meta.Add("appName", appName);
+                var meta = response.meta.Copy();
+                meta["appName"]= appName;
                 this.http.Get(appUrl, ParseAppDetail, meta);
             }
             
         }
         private void ParseAppDetail(HttpContentModel response)
         {
-            var meta = response.meta as Dictionary<string, object>;
+            var meta = response.meta as MetaModel;
             Console.WriteLine(meta["appName"]);
             IosAppItem appItem = new IosAppItem();
             appItem.AppName = meta["appName"].ToString();
@@ -80,14 +80,14 @@ namespace MyCrawler.Spiders
             appItem.ImgUrl= jObj1["image"]?.ToString();
             //TODO 写入数据库
         }
-        public override object BeforeRequest(BaseHttpClient client, RequestEntity request, Dictionary<string, object> meta)
+        public override object BeforeRequest(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
             request.UserAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
             request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
             return base.BeforeRequest(client, request,meta);
         }
 
-        public override object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, Dictionary<string, object> meta)
+        public override object BeforeException(BaseHttpClient client, Exception e, RequestEntity request, ResponseEntity response, MetaModel meta)
         {
             if(e is CatchHttpCodeException)
             {
