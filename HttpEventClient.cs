@@ -45,7 +45,8 @@ namespace MyCrawler
             clientsPool = new List<BaseHttpClient>();
             freeClientsQueue = new ConcurrentStack<BaseHttpClient>();
             tasksQueue = new ConcurrentStack<HttpContentModel>();
-            ServicePointManager.DefaultConnectionLimit = maxThread+1;
+            //ServicePointManager.DefaultConnectionLimit = maxThread+1;
+            ServicePointManager.DefaultConnectionLimit = 10000;
             for (int i = 0; i < maxThread; i++)
             {
                 clientsPool.Add(new DefaultHttpClient(i));

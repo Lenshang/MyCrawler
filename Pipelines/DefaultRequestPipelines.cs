@@ -1,4 +1,5 @@
 ﻿using MyCrawler.Model;
+using MyCrawler.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,14 +9,30 @@ namespace MyCrawler.Pipelines
     public class DefaultRequestPipelines
     {
         BaseSpider spider { get; set; }
+        BloomFilterHelper bloomFilter { get; set; }
         public DefaultRequestPipelines(BaseSpider spider)
         {
             this.spider = spider;
+            this.bloomFilter = new BloomFilterHelper(16, 20480000);
+            spider.http.RegRequestPipelines(this.UrlFilter);
             spider.http.RegRequestPipelines(this.DeepControl);
         }
         public object DefaultHeader(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
             return null;
+        }
+        public object UrlFilter(BaseHttpClient client, RequestEntity request, MetaModel meta)
+        {
+            if (meta?.Get<bool>("dontFilter")==true)
+            {
+                return request;
+            }
+            if (this.bloomFilter.ContainsValue(request.Url.ToString()))
+            {
+                return null;
+            }
+            this.bloomFilter.AddValue(request.Url.ToString());
+            return request;
         }
         public object DeepControl(BaseHttpClient client, RequestEntity request, MetaModel meta)
         {
