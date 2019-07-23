@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MyCrawler.Model
+namespace MyCrawler.Http
 {
     public class DefaultHttpClient : BaseHttpClient
     {
@@ -76,6 +76,7 @@ namespace MyCrawler.Model
             resultEntity.CharacterSet = response.CharacterSet;
             resultEntity.Headers = response.Headers;
             resultEntity.Response = response;
+            resultEntity.ResponseUrl = response.ResponseUri;
             return resultEntity;
         }
     }

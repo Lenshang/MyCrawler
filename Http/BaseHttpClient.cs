@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MyCrawler.Model
+namespace MyCrawler.Http
 {
     public abstract class BaseHttpClient
     {

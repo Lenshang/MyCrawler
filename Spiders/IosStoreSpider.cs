@@ -1,5 +1,6 @@
 ﻿using AngleSharp;
 using AngleSharp.Html.Parser;
+using MyCrawler.Http;
 using MyCrawler.Model;
 using MyCrawler.Utils;
 using Newtonsoft.Json;

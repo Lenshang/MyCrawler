@@ -1,4 +1,5 @@
-﻿using MyCrawler.Pipelines;
+﻿using MyCrawler.Http;
+using MyCrawler.Pipelines;
 using MyCrawler.Utils;
 using System;
 using System.Collections.Generic;
@@ -16,12 +17,13 @@ namespace MyCrawler.Model
         private int status = 0;
         public int maxDeep = -1;
         public DefaultRequestPipelines defaultRequestPipelines { get; private set; }
+        public DefaultResponsePipelines defaultResponsePipelines { get; private set; }
         public BaseSpider(int maxThread=1)
         {
             this.locker = new object();
             http = new HttpEventClient(maxThread);
             defaultRequestPipelines = new DefaultRequestPipelines(this);
-
+            defaultResponsePipelines = new DefaultResponsePipelines(this);
             this.http.RegRequestPipelines(this.BeforeRequest);
             this.http.RegResponsePipelines(this.BeforeResponse);
             this.http.RegExceptionPipelines(this.BeforeException);

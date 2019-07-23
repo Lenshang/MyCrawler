@@ -1,4 +1,5 @@
-﻿using MyCrawler.Model;
+﻿using MyCrawler.Http;
+using MyCrawler.Model;
 using MyCrawler.Utils;
 using System;
 using System.Collections.Generic;

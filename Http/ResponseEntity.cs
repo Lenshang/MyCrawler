@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace MyCrawler.Model
+namespace MyCrawler.Http
 {
     public class ResponseEntity
     {
@@ -32,6 +32,10 @@ namespace MyCrawler.Model
         /// 原始Response信息
         /// </summary>
         public object Response { get; set; }
+        /// <summary>
+        /// Response的Url信息
+        /// </summary>
+        public Uri ResponseUrl { get; set; }
         public string GetHtml(Encoding encode = null)
         {
             if (encode == null)
@@ -69,6 +73,22 @@ namespace MyCrawler.Model
             var parser = context.GetService<IHtmlParser>();
             var document = parser.ParseDocument(this.GetHtml(encode));
             return document;
+        }
+
+        public List<string> GetAllUrl(Encoding encode = null)
+        {
+            var document = this.GetDocument();
+            List<string> result = new List<string>();
+            foreach(var item in document.QuerySelectorAll("[href]"))
+            {
+                string _url = item.GetAttribute("href").ToString();
+                if (!_url.StartsWith("http://") && !_url.StartsWith("https://"))
+                {
+                    _url = new Uri(this.ResponseUrl, _url).ToString();
+                }
+                result.Add(_url);
+            }
+            return result;
         }
     }
 }
