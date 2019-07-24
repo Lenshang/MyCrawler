@@ -20,7 +20,7 @@ namespace MyCrawler
         static void Main(string[] args)
         {
 
-            BaseSpider spider = new IosStoreSpider();
+            BaseSpider spider = new CompanyCreditSpider();
             spider.Run();
 
             Console.ReadLine();
