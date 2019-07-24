@@ -9,7 +9,7 @@ namespace MyCrawler.Spiders
 {
     class CompanyCreditSpider : BaseSpider
     {
-        int threshold = 100;//
+        int threshold = 30;//
         public CompanyCreditSpider(): base(maxThread: 1)
         {
             //上海全市企业商铺商家信息爬虫
@@ -47,9 +47,15 @@ namespace MyCrawler.Spiders
             var lists = doc.QuerySelectorAll("div.road_sahngjia.road_zm_list a");
             foreach(var item in lists)
             {
-                string name = item.TextContent.Trim();
+
+                string road = item.TextContent.Trim();
+                string name=road + "1号";
                 string url = $"https://xin.baidu.com/s?q={System.Web.HttpUtility.UrlEncode(name)}&t=0";
-                this.http.Get(url, this.ParseCompanyName);
+                MetaModel meta = new MetaModel();
+                meta.Add("num", 1);
+                meta.Add("empty", 0);
+                meta.Add("road", road);
+                this.http.Get(url, this.ParseCompanyName,meta);
             }
         }
         private void ParseCompanyName(HttpContentModel response)
@@ -60,6 +66,27 @@ namespace MyCrawler.Spiders
             {
                 Console.WriteLine(item.QuerySelector("h3 a").TextContent);
             }
+            var meta = response.meta;
+            if (lists.Length == 0)
+            {
+                meta["empty"] = (int)meta["empty"]+1;
+            }
+            else
+            {
+                meta["empty"] = 0;
+            }
+
+            if ((int)meta["empty"] > this.threshold)
+            {
+                return;
+            }
+            meta["num"] = (int)meta["num"] + 1;
+            string road = meta["road"].ToString();
+            string name = road + meta["num"].ToString()+"号";
+            string url = $"https://xin.baidu.com/s?q={System.Web.HttpUtility.UrlEncode(name)}&t=0";
+            
+            this.http.Get(url, this.ParseCompanyName, meta);
+
         }
     }
 }
